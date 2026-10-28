@@ -75,28 +75,39 @@ ELO_START = 1200
 ELO_K = 32
 
 
-def elo_ratings():
-    """Classifica Elo: partite in ordine cronologico, rating di squadra = media dei giocatori (2v2)."""
+def _expected(rows, t1, t2):
+    r1 = sum(rows[p.id]['rating'] for p in t1) / len(t1)
+    r2 = sum(rows[p.id]['rating'] for p in t2) / len(t2)
+    return 1 / (1 + 10 ** ((r2 - r1) / 400))
+
+
+def _elo_replay():
+    """Rating finali e, per ogni partita giocata, l'attesa di vittoria della squadra 1 al momento del match."""
     rows = {p.id: {'player': p, 'rating': ELO_START, 'peak': ELO_START, 'played': 0, 'last': None}
             for p in Player.objects.all()}
+    expected = {}
     matches = (Match.objects.filter(played=True).order_by('scheduled_at', 'id')
                .prefetch_related('team1', 'team2'))
     for m in matches:
         t1, t2 = list(m.team1.all()), list(m.team2.all())
         if not t1 or not t2:
             continue
-        r1 = sum(rows[p.id]['rating'] for p in t1) / len(t1)
-        r2 = sum(rows[p.id]['rating'] for p in t2) / len(t2)
-        e1 = 1 / (1 + 10 ** ((r2 - r1) / 400))
+        e1 = expected[m.id] = _expected(rows, t1, t2)
         s1 = 1 if m.score1 > m.score2 else (0.5 if m.score1 == m.score2 else 0)
-        for team, score, expected in ((t1, s1, e1), (t2, 1 - s1, 1 - e1)):
-            delta = ELO_K * (score - expected)
+        for team, score, exp in ((t1, s1, e1), (t2, 1 - s1, 1 - e1)):
+            delta = ELO_K * (score - exp)
             for p in team:
                 r = rows[p.id]
                 r['rating'] += delta
                 r['peak'] = max(r['peak'], r['rating'])
                 r['played'] += 1
                 r['last'] = delta
+    return rows, expected
+
+
+def elo_ratings():
+    """Classifica Elo: partite in ordine cronologico, rating di squadra = media dei giocatori (2v2)."""
+    rows, _ = _elo_replay()
     out = list(rows.values())
     for r in out:
         r['provisional'] = r['played'] < MIN_GAMES
@@ -108,6 +119,28 @@ def elo_ratings():
             if round(r['rating']) == round(active[-1]['rating']):
                 r['donkey'] = True
     return out
+
+
+def with_elo(matches):
+    """Annota ogni partita con m.elo, variazioni per squadra: t1 e t2.
+
+    Giocata: scambio effettivo (int). Da giocare: (vittoria, pari, sconfitta) coi rating attuali."""
+    rows, expected = _elo_replay()
+    matches = list(matches)
+    for m in matches:
+        t1, t2 = list(m.team1.all()), list(m.team2.all())
+        m.elo = None
+        if not t1 or not t2:
+            continue
+        e1 = expected[m.id] if m.id in expected else _expected(rows, t1, t2)
+        if m.played:
+            s1 = 1 if m.score1 > m.score2 else (0.5 if m.score1 == m.score2 else 0)
+            delta = round(ELO_K * (s1 - e1))
+            m.elo = {'t1': delta, 't2': -delta}
+        else:
+            m.elo = {'t1': tuple(round(ELO_K * (s - e1)) for s in (1, 0.5, 0)),
+                     't2': tuple(round(ELO_K * (s - (1 - e1))) for s in (1, 0.5, 0))}
+    return matches
 
 
 def trends():
@@ -153,12 +186,12 @@ def home(request):
     recent = Match.objects.filter(played=True).prefetch_related('team1', 'team2')[:10]
     return render(request, 'league/home.html', {
         'ratings': elo_ratings(), 'elo_start': ELO_START, 'elo_k': ELO_K, 'min_games': MIN_GAMES,
-        'upcoming': upcoming, 'recent': recent})
+        'upcoming': with_elo(upcoming), 'recent': with_elo(recent)})
 
 
 def matches(request):
     qs = Match.objects.prefetch_related('team1', 'team2')
-    return render(request, 'league/matches.html', {'matches': qs})
+    return render(request, 'league/matches.html', {'matches': with_elo(qs)})
 
 
 def match_new(request):

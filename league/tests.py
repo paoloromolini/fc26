@@ -114,3 +114,44 @@ class EloTests(TestCase):
         m.team1.set([a]); m.team2.set([b])
         self.assertIn('Classifica Elo', self.client.get('/').content.decode())
         self.assertIn('Classifica a punti', self.client.get('/punti/').content.decode())
+
+
+class EloStakeTests(TestCase):
+    def test_stake_before_result_and_exchange_after(self):
+        from .views import with_elo
+        a, b = Player.objects.create(name='A'), Player.objects.create(name='B')
+        m = Match.objects.create(mode='1v1')
+        m.team1.set([a]); m.team2.set([b])
+        (m,) = with_elo(Match.objects.all())
+        self.assertEqual(m.elo, {'t1': (16, 0, -16), 't2': (16, 0, -16)})
+        html = self.client.get('/').content.decode()
+        self.assertIn('vittoria', html)
+        m.score1, m.score2, m.played = 2, 0, True
+        m.save()
+        (m,) = with_elo(Match.objects.all())
+        self.assertEqual(m.elo, {'t1': 16, 't2': -16})
+        self.assertIn('+16', self.client.get('/partite/').content.decode())
+
+    def test_stake_favourite_risks_more(self):
+        from .views import with_elo
+        a, b = Player.objects.create(name='A'), Player.objects.create(name='B')
+        for _ in range(3):
+            m = Match.objects.create(mode='1v1', played=True, score1=2, score2=0)
+            m.team1.set([a]); m.team2.set([b])
+        m = Match.objects.create(mode='1v1')
+        m.team1.set([a]); m.team2.set([b])
+        (up,) = [x for x in with_elo(Match.objects.filter(played=False))]
+        win, draw, loss = up.elo['t1']
+        self.assertLess(win, 16)
+        self.assertLess(loss, -16)
+        self.assertGreater(up.elo['t2'][0], 16)
+
+    def test_played_match_uses_rating_at_the_time(self):
+        from .views import with_elo
+        a, b = Player.objects.create(name='A'), Player.objects.create(name='B')
+        for _ in range(2):
+            m = Match.objects.create(mode='1v1', played=True, score1=2, score2=0)
+            m.team1.set([a]); m.team2.set([b])
+        first, second = sorted(with_elo(Match.objects.filter(played=True)), key=lambda x: x.id)
+        self.assertEqual(first.elo['t1'], 16)
+        self.assertLess(second.elo['t1'], 16)
