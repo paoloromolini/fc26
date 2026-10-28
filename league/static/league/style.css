@@ -1,0 +1,138 @@
+/* Palette dal logo: notte profonda, blu elettrico, viola, oro */
+:root {
+  --bg: #0b1020; --card: #151d36; --card-2: #1c2748; --line: #2a3760;
+  --fg: #e8ecf8; --muted: #8f9bbd;
+  --accent: #22c55e; --danger: #ef4444;
+  --blue: #38bdf8; --violet: #a78bfa; --gold: #fbbf24;
+  --grad: linear-gradient(135deg, #38bdf8, #8b5cf6);
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; color: var(--fg); min-height: 100vh;
+  font-family: ui-rounded, "SF Pro Rounded", system-ui, -apple-system, "Segoe UI", sans-serif;
+  background:
+    radial-gradient(900px 500px at 15% -5%, rgba(56, 189, 248, .16), transparent 60%),
+    radial-gradient(800px 500px at 90% 0%, rgba(139, 92, 246, .18), transparent 60%),
+    var(--bg);
+  background-attachment: fixed;
+}
+a { color: var(--blue); text-decoration: none; }
+a:hover { text-decoration: underline; }
+h1, h2 { margin: 0 0 .6rem; letter-spacing: .01em; }
+h2 { font-size: 1.35rem; }
+h2::after { content: ""; display: block; width: 3rem; height: 3px; margin-top: .35rem; border-radius: 2px; background: var(--grad); }
+.muted { color: var(--muted); }
+small.muted, p.muted { font-size: .85rem; }
+
+header { text-align: center; padding: 1.2rem 1rem .2rem; }
+header .brand img { height: clamp(150px, 30vw, 240px); width: auto; filter: drop-shadow(0 6px 28px rgba(99, 102, 241, .45)); }
+
+nav {
+  position: sticky; top: 0; z-index: 10; display: flex; gap: .4rem; justify-content: center; flex-wrap: wrap;
+  padding: .6rem .8rem; background: rgba(11, 16, 32, .8); backdrop-filter: blur(10px); border-bottom: 1px solid var(--line);
+}
+nav a { color: var(--muted); padding: .4rem .85rem; border-radius: 999px; font-weight: 600; transition: background .15s, color .15s; }
+nav a:hover { background: var(--card-2); color: var(--fg); text-decoration: none; }
+nav a.active { background: var(--grad); color: #fff; }
+nav a.cta { border: 1px solid var(--accent); color: var(--accent); }
+nav a.cta:hover { background: var(--accent); color: #04210f; }
+
+main { max-width: 960px; margin: 1.2rem auto; padding: 0 1rem; }
+.card {
+  background: linear-gradient(180deg, rgba(28, 39, 72, .75), rgba(21, 29, 54, .85));
+  border: 1px solid var(--line); border-radius: 18px; padding: 1.2rem 1.3rem; margin-bottom: 1.2rem;
+  overflow-x: auto; box-shadow: 0 10px 30px rgba(0, 0, 0, .25);
+}
+
+table { width: 100%; border-collapse: collapse; }
+th, td { text-align: left; padding: .55rem .55rem; border-bottom: 1px solid rgba(42, 55, 96, .7); }
+th { color: var(--muted); font-size: .8rem; text-transform: uppercase; letter-spacing: .06em; font-weight: 700; }
+tbody tr:hover td, table tr:hover td { background: rgba(56, 189, 248, .05); }
+tr:last-child td { border-bottom: 0; }
+.num { text-align: right; }
+td.rank { width: 2.4rem; font-weight: 700; color: var(--muted); }
+td.rank .medal { display: inline-block; font-size: 1.9rem; line-height: 1; }
+td.rank { width: 3rem; }
+
+/* emoji grandi: livelli, ciuchino, premi */
+.ico { font-size: 1.6em; line-height: 1; vertical-align: -.18em; margin-right: .1em; }
+.donkey { position: relative; cursor: help; font-size: 1.6em; line-height: 1; vertical-align: -.18em; }
+.donkey::after {
+  content: attr(data-msg); position: absolute; left: 130%; top: 50%; transform: translateY(-50%) scale(.9); white-space: nowrap;
+  background: var(--gold); color: #3b2a00; font-weight: 700; font-size: .9rem; padding: .3rem .7rem; border-radius: 999px;
+  opacity: 0; pointer-events: none; transition: opacity .15s, transform .15s; z-index: 5;
+}
+.donkey:hover::after, .donkey:focus::after { opacity: 1; transform: translateY(-50%) scale(1); }
+
+.btn, button {
+  background: var(--grad); color: #fff; border: 0; border-radius: 10px; padding: .5rem 1rem;
+  font-weight: 700; cursor: pointer; font-size: 1rem; font-family: inherit; transition: transform .1s, filter .15s;
+}
+.btn:hover, button:hover { filter: brightness(1.12); text-decoration: none; }
+.btn:active, button:active { transform: scale(.97); }
+.btn { display: inline-block; }
+button.danger { background: #b91c1c; color: #fff; padding: .35rem .7rem; }
+button.secondary { background: var(--card-2); color: var(--fg); }
+input, select { padding: .5rem; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--fg); font-size: 1rem; font-family: inherit; }
+input[type=checkbox], input[type=radio] { accent-color: var(--blue); }
+ul.errorlist { color: var(--danger); padding-left: 1rem; }
+.msg { padding: .7rem 1rem; border-radius: 12px; margin-bottom: 1rem; background: #14532d; border: 1px solid #166534; }
+.msg.error { background: #7f1d1d; border-color: #991b1b; }
+.badge { background: var(--card-2); border: 1px solid var(--line); border-radius: 6px; padding: .1rem .45rem; font-size: .75rem; font-weight: 700; color: var(--blue); }
+.win { color: var(--accent); font-weight: 700; }
+.loss { color: var(--danger); }
+.draw { color: var(--gold); }
+
+dialog { background: var(--card); color: var(--fg); border: 1px solid var(--line); border-radius: 16px; padding: 1.2rem 1.4rem; max-width: 420px; width: calc(100% - 2rem); }
+dialog::backdrop { background: rgba(2, 6, 23, .75); backdrop-filter: blur(2px); }
+dialog p { margin-top: 0; }
+dialog .actions { display: flex; gap: .6rem; justify-content: flex-end; }
+form.inline { display: inline; }
+.teams { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+.teams ul { list-style: none; padding: 0; }
+
+/* righe partita */
+.score { font-size: 1.35rem; font-weight: 800; white-space: nowrap; text-align: center; }
+td.vs { color: var(--muted); text-align: center; font-weight: 700; }
+.elo { color: var(--muted); }
+
+/* livelli (legenda) */
+.chips { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .6rem; }
+.chip { display: inline-flex; align-items: center; gap: .45rem; background: var(--card-2); border: 1px solid var(--line); border-radius: 999px; padding: .3rem .8rem .3rem .5rem; font-size: .85rem; }
+.chip .ico { font-size: 1.5rem; margin: 0; vertical-align: middle; }
+.chip small { color: var(--muted); }
+
+/* premi */
+.awards { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: .9rem; }
+.award { background: var(--card-2); border: 1px solid var(--line); border-radius: 16px; padding: 1rem .9rem; text-align: center; position: relative; overflow: hidden; }
+.award::before { content: ""; position: absolute; inset: 0 0 auto 0; height: 3px; background: var(--grad); }
+.award .big { font-size: 3.4rem; line-height: 1.1; filter: drop-shadow(0 4px 10px rgba(0, 0, 0, .4)); }
+.award h3 { margin: .3rem 0 .1rem; font-size: 1rem; color: var(--gold); text-transform: uppercase; letter-spacing: .06em; }
+.award .who { font-size: 1.15rem; font-weight: 800; margin: .2rem 0; }
+.award .who .ico { font-size: 1.3em; }
+.award p { margin: 0; color: var(--muted); font-size: .8rem; }
+.award .detail { color: var(--fg); font-weight: 600; margin-top: .2rem; }
+
+/* rivalità */
+.duel { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: .5rem 1rem; text-align: center; margin: 1rem 0; }
+.duel .side .name { font-size: 1.3rem; font-weight: 800; }
+.duel .side .name .ico { font-size: 2.6rem; display: block; margin: 0 0 .2rem; vertical-align: baseline; }
+.duel .side .wins { font-size: 3.2rem; font-weight: 900; line-height: 1; }
+.duel .mid { color: var(--muted); font-weight: 800; font-size: 1.3rem; }
+.duel .mid small { display: block; font-size: .8rem; color: var(--gold); }
+.bar { display: flex; height: 14px; border-radius: 999px; overflow: hidden; background: var(--card-2); margin: .4rem 0 1rem; }
+.bar span { display: block; height: 100%; }
+.bar .a { background: var(--blue); } .bar .d { background: var(--muted); opacity: .6; } .bar .b { background: var(--violet); }
+.res { display: inline-block; min-width: 1.6rem; text-align: center; border-radius: 6px; font-weight: 800; font-size: .8rem; padding: .1rem .3rem; }
+.res.w { background: rgba(34, 197, 94, .2); color: var(--accent); }
+.res.d { background: rgba(251, 191, 36, .2); color: var(--gold); }
+.res.l { background: rgba(239, 68, 68, .2); color: var(--danger); }
+.pick { display: flex; flex-wrap: wrap; gap: .6rem; align-items: center; }
+.verdict { text-align: center; font-size: 1.05rem; margin: .6rem 0 1rem; }
+
+@media (max-width: 600px) {
+  .teams { grid-template-columns: 1fr; }
+  .duel .side .wins { font-size: 2.4rem; }
+  th, td { padding: .45rem .35rem; }
+  .score { font-size: 1.15rem; }
+}

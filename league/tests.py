@@ -155,3 +155,112 @@ class EloStakeTests(TestCase):
         first, second = sorted(with_elo(Match.objects.filter(played=True)), key=lambda x: x.id)
         self.assertEqual(first.elo['t1'], 16)
         self.assertLess(second.elo['t1'], 16)
+
+
+def _play(mode, t1, t2, s1, s2):
+    m = Match.objects.create(mode=mode, played=True, score1=s1, score2=s2)
+    m.team1.set(t1); m.team2.set(t2)
+    return m
+
+
+class EloByModeTests(TestCase):
+    def test_modes_are_independent(self):
+        from .views import ELO_K, ELO_START, elo_ratings
+        a, b, c, d = (Player.objects.create(name=n) for n in 'ABCD')
+        _play('1v1', [a], [b], 2, 0)
+        _play('2v2', [a, c], [b, d], 0, 1)
+        r = {x['player'].name: x for x in elo_ratings()}
+        self.assertAlmostEqual(r['A']['elo_1v1'], ELO_START + ELO_K / 2)
+        self.assertAlmostEqual(r['A']['elo_2v2'], ELO_START - ELO_K / 2)  # il 2v2 parte da zero, non dal 1v1
+        self.assertEqual(r['A']['elo_2v2_games'], 1)
+
+    def test_none_when_mode_never_played(self):
+        from .views import elo_ratings
+        a, b = Player.objects.create(name='A'), Player.objects.create(name='B')
+        _play('1v1', [a], [b], 1, 0)
+        r = elo_ratings()[0]
+        self.assertIsNone(r['elo_2v2'])
+        self.assertEqual(self.client.get('/').status_code, 200)
+
+    def test_pair_elo(self):
+        from .views import ELO_K, ELO_START, pair_standings
+        a, b, c, d = (Player.objects.create(name=n) for n in 'ABCD')
+        _play('2v2', [a, b], [c, d], 3, 1)
+        _play('2v2', [d, c], [b, a], 0, 0)  # stessa coppia con ordine diverso
+        rows = {r['name']: r['elo'] for r in pair_standings()}
+        self.assertEqual(set(rows), {'A + B', 'C + D'})
+        self.assertAlmostEqual(rows['A + B'] + rows['C + D'], 2 * ELO_START)
+        self.assertGreater(rows['A + B'], ELO_START)
+        self.assertEqual(self.client.get('/coppie/').status_code, 200)
+
+
+class RivalryTests(TestCase):
+    def setUp(self):
+        self.a, self.b, self.c, self.d = (Player.objects.create(name=n) for n in 'ABCD')
+
+    def test_head_to_head_and_teammates_excluded(self):
+        from .rivalry import rivalries
+        _play('1v1', [self.a], [self.b], 3, 0)
+        _play('1v1', [self.b], [self.a], 1, 1)
+        _play('2v2', [self.a, self.c], [self.b, self.d], 0, 2)
+        t = rivalries()
+        rec = t[(self.a.id, self.b.id)]
+        self.assertEqual((rec['w'], rec['d'], rec['l'], rec['n']), (1, 1, 1, 3))
+        self.assertEqual((rec['gf'], rec['ga']), (4, 3))
+        mirror = t[(self.b.id, self.a.id)]
+        self.assertEqual((mirror['w'], mirror['l']), (1, 1))
+        self.assertNotIn((self.a.id, self.c.id), t)  # compagni di squadra
+        self.assertEqual(rec['last'][0]['res'], 'l')  # il più recente per primo
+
+    def test_nemesis_needs_enough_games(self):
+        from .rivalry import nemeses, rivalries
+        by_id = {p.id: p for p in Player.objects.all()}
+        _play('1v1', [self.a], [self.b], 0, 1)
+        _play('1v1', [self.a], [self.b], 0, 1)
+        self.assertEqual(nemeses(rivalries(), by_id), [])
+        _play('1v1', [self.a], [self.b], 0, 1)
+        res = {n['player'].name: n for n in nemeses(rivalries(), by_id)}
+        self.assertEqual(res['A']['nemesis'][0], self.b)
+        self.assertIsNone(res['A']['prey'])
+        self.assertEqual(res['B']['prey'][0], self.a)
+
+    def test_pages(self):
+        _play('1v1', [self.a], [self.b], 2, 1)
+        for url in ('/rivalita/', f'/rivalita/?a={self.a.id}&b={self.b.id}', f'/rivalita/?a={self.b.id}&b={self.a.id}',
+                    f'/rivalita/?a={self.a.id}&b={self.c.id}', f'/rivalita/?a={self.a.id}&b={self.a.id}',
+                    '/rivalita/?a=x&b=999'):
+            self.assertEqual(self.client.get(url).status_code, 200, url)
+
+
+class AwardTests(TestCase):
+    def titles(self):
+        from .awards import awards
+        return {a['title']: a for a in awards()}
+
+    def test_no_awards_without_games(self):
+        Player.objects.create(name='A')
+        self.assertEqual(self.titles(), {})
+        self.assertEqual(self.client.get('/').status_code, 200)
+
+    def test_wall_cannon_streak_and_thrashing(self):
+        a, b = Player.objects.create(name='A'), Player.objects.create(name='B')
+        for _ in range(5):
+            _play('1v1', [a], [b], 5, 0)
+        t = self.titles()
+        self.assertEqual([p.name for p in t['Il Muro']['holders']], ['A'])
+        self.assertEqual([p.name for p in t['Il Cannoniere']['holders']], ['A'])
+        self.assertEqual(t['In fiamma']['detail'], '5 vittorie di fila')
+        self.assertEqual([p.name for p in t['In caduta libera']['holders']], ['B'])
+        self.assertEqual(t['Cappotto']['detail'], '5-0 contro B')
+        self.assertIn('😱', self.client.get('/').content.decode())
+
+    def test_streak_broken_by_draw(self):
+        a, b = Player.objects.create(name='A'), Player.objects.create(name='B')
+        for s in (2, 2, 2, 1):
+            _play('1v1', [a], [b], s, 1 if s == 1 else 0)
+        self.assertNotIn('In fiamma', self.titles())
+
+    def test_needs_min_games(self):
+        a, b = Player.objects.create(name='A'), Player.objects.create(name='B')
+        _play('1v1', [a], [b], 1, 0)
+        self.assertNotIn('Il Muro', self.titles())

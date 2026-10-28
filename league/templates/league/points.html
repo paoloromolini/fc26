@@ -3,16 +3,17 @@
 {% block content %}
 <div class="card">
   <h2>Classifica a punti</h2>
-  <p style="color:var(--muted)">Vittoria: 3 punti (nel 2v2 a entrambi i vincitori) · pareggio: 1 punto a testa<br>Ordinata per % = punti ottenuti / punti massimi disponibili nelle partite giocate (3 a partita), così chi gioca meno non è penalizzato.</p>
+  <p class="muted">Vittoria: 3 punti (nel 2v2 a entrambi i vincitori) · pareggio: 1 punto a testa<br>Ordinata per % = punti ottenuti / punti massimi disponibili nelle partite giocate (3 a partita), così chi gioca meno non è penalizzato.</p>
   <table>
-    <tr><th>#</th><th>Giocatore</th><th class="num" title="Percentuale dei punti disponibili">%</th><th class="num" title="Punti">Pt</th><th class="num" title="Partite giocate">G</th><th class="num" title="Vittorie">V</th><th class="num" title="Pareggi">P</th><th class="num" title="Sconfitte">S</th><th class="num" title="Gol fatti">GF</th><th class="num" title="Gol subiti">GS</th><th class="num" title="Differenza reti (GF − GS)">DR</th></tr>
+    <tr><th></th><th>Giocatore</th><th class="num" title="Percentuale dei punti disponibili">%</th><th class="num" title="Punti">Pt</th><th class="num" title="Partite giocate">G</th><th class="num" title="Vittorie">V</th><th class="num" title="Pareggi">P</th><th class="num" title="Sconfitte">S</th><th class="num" title="Gol fatti">GF</th><th class="num" title="Gol subiti">GS</th><th class="num" title="Differenza reti (GF − GS)">DR</th></tr>
     {% for r in standings %}
-    <tr><td>{{ forloop.counter }}</td><td>{% player_name r.player %}{% if r.donkey %} <span class="donkey" tabindex="0" data-msg="Che ciuhooooo!">🫏</span>{% endif %}</td><td class="num"><strong>{{ r.pct }}%</strong></td><td class="num">{{ r.points }}</td>
+    <tr>{% include 'league/_rank.html' %}<td>{% player_name r.player %}{% if r.donkey %} <span class="donkey" tabindex="0" data-msg="Che ciuhooooo!">🫏</span>{% endif %}</td><td class="num"><strong>{{ r.pct }}%</strong></td><td class="num">{{ r.points }}</td>
       <td class="num">{{ r.played }}</td><td class="num">{{ r.wins }}</td><td class="num">{{ r.draws }}</td><td class="num">{{ r.losses }}</td>
       <td class="num">{{ r.gf }}</td><td class="num">{{ r.ga }}</td><td class="num">{{ r.gd }}</td></tr>
     {% empty %}<tr><td colspan="11">Nessun giocatore. <a href="{% url 'players' %}">Aggiungine uno</a>.</td></tr>{% endfor %}
   </table>
   {% include 'league/_legend.html' %}
-  <p style="color:var(--muted);font-size:.85rem"><strong>🫏</strong> = ultimo in classifica · <strong>Livelli</strong> (in base alla % dei punti disponibili): {{ badge_provisional.0 }} {{ badge_provisional.1 }} (meno di {{ badge_min_games }} partite, livello provvisorio) · {% for min, icon, title in badge_tiers %}{{ icon }} {{ title }} ({{ min }}%+){% if not forloop.last %} · {% endif %}{% endfor %}</p>
+  <p class="muted"><strong>Livelli</strong> in base alla % dei punti disponibili:</p>
+  {% include 'league/_tiers.html' %}
 </div>
 {% endblock %}

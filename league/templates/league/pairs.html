@@ -3,14 +3,14 @@
 {% block content %}
 <div class="card">
   <h2>Classifica coppie</h2>
-  <p style="color:var(--muted)">Solo partite 2v2. Ordinata per % dei punti disponibili (3 a partita).</p>
+  <p class="muted">Solo partite 2v2. Ordinata per % dei punti disponibili (3 a partita). <strong>Elo</strong>: ogni coppia fissa è un'entità a sé e parte da 1200, indipendente dai rating dei singoli.</p>
   <table>
-    <tr><th>#</th><th>Coppia</th><th class="num" title="Percentuale dei punti disponibili">%</th><th class="num" title="Punti">Pt</th><th class="num" title="Partite giocate">G</th><th class="num" title="Vittorie">V</th><th class="num" title="Pareggi">P</th><th class="num" title="Sconfitte">S</th><th class="num" title="Gol fatti">GF</th><th class="num" title="Gol subiti">GS</th><th class="num" title="Differenza reti (GF − GS)">DR</th></tr>
+    <tr><th></th><th>Coppia</th><th class="num" title="Elo della coppia">Elo</th><th class="num" title="Percentuale dei punti disponibili">%</th><th class="num" title="Punti">Pt</th><th class="num" title="Partite giocate">G</th><th class="num" title="Vittorie">V</th><th class="num" title="Pareggi">P</th><th class="num" title="Sconfitte">S</th><th class="num" title="Gol fatti">GF</th><th class="num" title="Gol subiti">GS</th><th class="num" title="Differenza reti (GF − GS)">DR</th></tr>
     {% for r in standings %}
-    <tr><td>{{ forloop.counter }}</td><td>{% for p in r.players %}{% player_name p %}{% if not forloop.last %} + {% endif %}{% endfor %}</td><td class="num"><strong>{{ r.pct }}%</strong></td><td class="num">{{ r.points }}</td>
+    <tr>{% include 'league/_rank.html' %}<td>{% for p in r.players %}{% player_name p %}{% if not forloop.last %} + {% endif %}{% endfor %}</td><td class="num"><strong>{{ r.elo|floatformat:0 }}</strong></td><td class="num"><strong>{{ r.pct }}%</strong></td><td class="num">{{ r.points }}</td>
       <td class="num">{{ r.played }}</td><td class="num">{{ r.wins }}</td><td class="num">{{ r.draws }}</td><td class="num">{{ r.losses }}</td>
       <td class="num">{{ r.gf }}</td><td class="num">{{ r.ga }}</td><td class="num">{{ r.gd }}</td></tr>
-    {% empty %}<tr><td colspan="11">Ancora nessuna partita 2v2 giocata.</td></tr>{% endfor %}
+    {% empty %}<tr><td colspan="12">Ancora nessuna partita 2v2 giocata.</td></tr>{% endfor %}
   </table>
   {% include 'league/_legend.html' %}
 </div>

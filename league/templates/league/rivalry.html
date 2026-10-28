@@ -1,0 +1,75 @@
+{% extends 'league/base.html' %}
+{% load league_tags %}
+{% block content %}
+<div class="card">
+  <h2>Rivalità</h2>
+  <p class="muted">Scontri diretti: contano le partite 1v1 e anche i 2v2 in cui i due stanno su squadre opposte.</p>
+  <form method="get" class="pick">
+    <select name="a" onchange="this.form.submit()"><option value="">Giocatore A</option>{% for p in players %}<option value="{{ p.id }}"{% if p == a %} selected{% endif %}>{{ p.name }}</option>{% endfor %}</select>
+    <strong>🆚</strong>
+    <select name="b" onchange="this.form.submit()"><option value="">Giocatore B</option>{% for p in players %}<option value="{{ p.id }}"{% if p == b %} selected{% endif %}>{{ p.name }}</option>{% endfor %}</select>
+    <button>Confronta</button>
+  </form>
+
+  {% if a and b and a == b %}<p class="verdict">Sfidare sé stessi non vale. Scegli due giocatori diversi.</p>{% endif %}
+  {% if detail %}
+    {% with rec=detail.rec %}
+    {% if rec %}
+    <div class="duel">
+      <div class="side"><div class="name">{% player_name detail.a %}</div><div class="wins" style="color:var(--blue)">{{ rec.w }}</div></div>
+      <div class="mid">vs<small>{{ rec.d }} pareggi</small></div>
+      <div class="side"><div class="name">{% player_name detail.b %}</div><div class="wins" style="color:var(--violet)">{{ rec.l }}</div></div>
+    </div>
+    <div class="bar" title="{{ rec.w }} vittorie · {{ rec.d }} pareggi · {{ rec.l }} vittorie">
+      <span class="a" style="width:{% widthratio rec.w rec.n 100 %}%"></span><span class="d" style="width:{% widthratio rec.d rec.n 100 %}%"></span><span class="b" style="width:{% widthratio rec.l rec.n 100 %}%"></span>
+    </div>
+    <p class="verdict">
+      {% if rec.w > rec.l %}<strong>{{ detail.a.name }}</strong> è in vantaggio{% if rec.n >= 3 %} ed è la bestia nera di <strong>{{ detail.b.name }}</strong>{% endif %}
+      {% elif rec.l > rec.w %}<strong>{{ detail.b.name }}</strong> è in vantaggio{% if rec.n >= 3 %} ed è la bestia nera di <strong>{{ detail.a.name }}</strong>{% endif %}
+      {% else %}Parità perfetta
+      {% endif %}
+      · gol {{ rec.gf }}-{{ rec.ga }} in {{ rec.n }} scontr{{ rec.n|pluralize:"o,i" }}
+    </p>
+    <table>
+      <tr><th>Data</th><th></th><th class="num">{{ detail.a.name }} - {{ detail.b.name }}</th><th class="num">Esito per {{ detail.a.name }}</th></tr>
+      {% for g in rec.last %}
+      <tr><td>{{ g.date|date:"d/m H:i" }}</td><td><span class="badge">{{ g.mode }}</span></td><td class="score">{{ g.gf }} - {{ g.ga }}</td>
+        <td class="num"><span class="res {{ g.res }}">{% if g.res == 'w' %}V{% elif g.res == 'd' %}P{% else %}S{% endif %}</span></td></tr>
+      {% endfor %}
+    </table>
+    <p class="muted">Ultimi {{ rec.last|length }} scontri, dal più recente.</p>
+    {% else %}
+    <p class="verdict">{{ detail.a.name }} e {{ detail.b.name }} non si sono ancora affrontati. 👀</p>
+    {% endif %}
+    {% endwith %}
+  {% endif %}
+</div>
+
+{% if nemeses %}
+<div class="card">
+  <h2>Bestie nere e vittime</h2>
+  <p class="muted">Con almeno 3 scontri diretti. La bestia nera è l'avversario contro cui si fa peggio, la vittima quello contro cui si fa meglio (in % di punti).</p>
+  <table>
+    <tr><th>Giocatore</th><th>😈 Bestia nera</th><th>🎯 Vittima preferita</th></tr>
+    {% for n in nemeses %}
+    <tr><td>{% player_name n.player %}</td>
+      <td>{% if n.nemesis %}<a href="?a={{ n.player.id }}&b={{ n.nemesis.0.id }}">{{ n.nemesis.0.name }}</a> <small class="muted">{{ n.nemesis.1.w }}V {{ n.nemesis.1.d }}P {{ n.nemesis.1.l }}S</small>{% else %}<span class="muted">–</span>{% endif %}</td>
+      <td>{% if n.prey %}<a href="?a={{ n.player.id }}&b={{ n.prey.0.id }}">{{ n.prey.0.name }}</a> <small class="muted">{{ n.prey.1.w }}V {{ n.prey.1.d }}P {{ n.prey.1.l }}S</small>{% else %}<span class="muted">–</span>{% endif %}</td></tr>
+    {% endfor %}
+  </table>
+</div>
+{% endif %}
+
+<div class="card">
+  <h2>Tutte le sfide</h2>
+  <table>
+    <tr><th>Sfida</th><th class="num">Scontri</th><th class="num">Bilancio</th><th class="num">Gol</th></tr>
+    {% for r in rivalries %}
+    <tr><td><a href="?a={{ r.a.id }}&b={{ r.b.id }}">{{ r.a.name }} – {{ r.b.name }}</a></td><td class="num">{{ r.rec.n }}</td>
+      <td class="num"><span class="win">{{ r.rec.w }}</span> · <span class="draw">{{ r.rec.d }}</span> · <span class="loss">{{ r.rec.l }}</span></td>
+      <td class="num">{{ r.rec.gf }}-{{ r.rec.ga }}</td></tr>
+    {% empty %}<tr><td colspan="4">Ancora nessuno scontro diretto.</td></tr>{% endfor %}
+  </table>
+  <p class="muted">Bilancio dal punto di vista del primo nome: vittorie · pareggi · sconfitte.</p>
+</div>
+{% endblock %}

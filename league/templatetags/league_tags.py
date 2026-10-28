@@ -7,7 +7,7 @@ register = template.Library()
 @register.simple_tag(takes_context=True)
 def player_name(context, player):
     icon, title, detail = context.get('player_badges', {}).get(player.id, ('', '', ''))
-    return format_html('<span title="{} · {}">{}</span> {}', title, detail, icon, player.name)
+    return format_html('<span class="ico" title="{} · {}">{}</span>{}', title, detail, icon, player.name)
 
 
 @register.filter

@@ -2,9 +2,11 @@ from django.contrib import messages
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
+from .awards import awards
 from .badges import MIN_GAMES, badges
 from .forms import MatchForm, PlayerForm, ResultForm
 from .models import Match, Player
+from .rivalry import nemeses, rivalries, rivalry_list
 
 
 def standings():
@@ -64,9 +66,11 @@ def pair_standings():
                 r['draws'] += 1
                 r['points'] += 1
     out = list(rows.values())
-    for r in out:
+    elo = pair_elo()
+    for key, r in rows.items():
         r['gd'] = r['gf'] - r['ga']
         r['pct'] = round(100 * r['points'] / (3 * r['played']))
+        r['elo'] = elo[tuple(sorted(key))]
     out.sort(key=lambda r: (-r['pct'], -r['points'], -r['wins'], -r['gd'], r['name'].lower()))
     return out
 
@@ -81,13 +85,17 @@ def _expected(rows, t1, t2):
     return 1 / (1 + 10 ** ((r2 - r1) / 400))
 
 
-def _elo_replay():
-    """Rating finali e, per ogni partita giocata, l'attesa di vittoria della squadra 1 al momento del match."""
+def _elo_replay(mode=None):
+    """Rating finali e, per ogni partita giocata, l'attesa di vittoria della squadra 1 al momento del match.
+
+    Con mode ('1v1' o '2v2') considera solo le partite di quella modalità."""
     rows = {p.id: {'player': p, 'rating': ELO_START, 'peak': ELO_START, 'played': 0, 'last': None}
             for p in Player.objects.all()}
     expected = {}
-    matches = (Match.objects.filter(played=True).order_by('scheduled_at', 'id')
-               .prefetch_related('team1', 'team2'))
+    matches = Match.objects.filter(played=True)
+    if mode:
+        matches = matches.filter(mode=mode)
+    matches = matches.order_by('scheduled_at', 'id').prefetch_related('team1', 'team2')
     for m in matches:
         t1, t2 = list(m.team1.all()), list(m.team2.all())
         if not t1 or not t2:
@@ -106,11 +114,19 @@ def _elo_replay():
 
 
 def elo_ratings():
-    """Classifica Elo: partite in ordine cronologico, rating di squadra = media dei giocatori (2v2)."""
+    """Classifica Elo: partite in ordine cronologico, rating di squadra = media dei giocatori (2v2).
+
+    Il rating principale mescola le due modalità; elo_1v1 / elo_2v2 sono due classifiche indipendenti
+    (None se il giocatore non ha mai giocato in quella modalità)."""
     rows, _ = _elo_replay()
+    by_mode = {mode: _elo_replay(mode)[0] for mode in (Match.ONE_V_ONE, Match.TWO_V_TWO)}
     out = list(rows.values())
     for r in out:
         r['provisional'] = r['played'] < MIN_GAMES
+        for mode, key in ((Match.ONE_V_ONE, 'elo_1v1'), (Match.TWO_V_TWO, 'elo_2v2')):
+            sub = by_mode[mode][r['player'].id]
+            r[key] = sub['rating'] if sub['played'] else None
+            r[key + '_games'] = sub['played']
     out.sort(key=lambda r: (-r['rating'], r['player'].name.lower()))
     # il ciuchino va a chi è ultimo per Elo (a pari merito, a tutti gli ultimi), se non sono tutti alla pari
     active = [r for r in out if r['played']]
@@ -119,6 +135,21 @@ def elo_ratings():
             if round(r['rating']) == round(active[-1]['rating']):
                 r['donkey'] = True
     return out
+
+
+def pair_elo():
+    """{(id, id): rating}: ogni coppia fissa è un'entità a sé che parte da ELO_START (solo partite 2v2)."""
+    ratings = {}
+    matches = (Match.objects.filter(played=True, mode=Match.TWO_V_TWO).order_by('scheduled_at', 'id')
+               .prefetch_related('team1', 'team2'))
+    for m in matches:
+        k1, k2 = (tuple(sorted(p.id for p in t.all())) for t in (m.team1, m.team2))
+        r1, r2 = ratings.setdefault(k1, ELO_START), ratings.setdefault(k2, ELO_START)
+        e1 = 1 / (1 + 10 ** ((r2 - r1) / 400))
+        s1 = 1 if m.score1 > m.score2 else (0.5 if m.score1 == m.score2 else 0)
+        ratings[k1] = r1 + ELO_K * (s1 - e1)
+        ratings[k2] = r2 - ELO_K * (s1 - e1)
+    return ratings
 
 
 def with_elo(matches):
@@ -185,8 +216,21 @@ def home(request):
     upcoming = Match.objects.filter(played=False).order_by('scheduled_at').prefetch_related('team1', 'team2')
     recent = Match.objects.filter(played=True).prefetch_related('team1', 'team2')[:10]
     return render(request, 'league/home.html', {
-        'ratings': elo_ratings(), 'elo_start': ELO_START, 'elo_k': ELO_K, 'min_games': MIN_GAMES,
+        'ratings': elo_ratings(), 'awards': awards(), 'elo_start': ELO_START, 'elo_k': ELO_K, 'min_games': MIN_GAMES,
         'upcoming': with_elo(upcoming), 'recent': with_elo(recent)})
+
+
+def rivalry(request):
+    all_players = list(Player.objects.all())
+    by_id = {p.id: p for p in all_players}
+    table = rivalries()
+    a, b = (by_id.get(int(v)) if v.isdigit() else None for v in (request.GET.get('a', ''), request.GET.get('b', '')))
+    detail = None
+    if a and b and a != b:
+        detail = {'a': a, 'b': b, 'rec': table.get((a.id, b.id))}
+    return render(request, 'league/rivalry.html', {
+        'players': all_players, 'a': a, 'b': b, 'detail': detail,
+        'rivalries': rivalry_list(table, by_id), 'nemeses': nemeses(table, by_id)})
 
 
 def matches(request):

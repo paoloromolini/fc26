@@ -1,0 +1,5 @@
+<div class="chips">
+  <span class="chip"><span class="ico">{{ badge_provisional.0 }}</span><span>{{ badge_provisional.1 }} <small>&lt; {{ badge_min_games }} partite (provvisorio)</small></span></span>
+  {% for min, icon, title in badge_tiers %}<span class="chip"><span class="ico">{{ icon }}</span><span>{{ title }} <small>{{ min }}%+</small></span></span>{% endfor %}
+  <span class="chip"><span class="ico">🫏</span><span>Ciuchino <small>ultimo in classifica</small></span></span>
+</div>

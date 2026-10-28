@@ -5,56 +5,21 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>FC26 Lega LAN</title>
 <link rel="icon" href="{% static 'league/logo.png' %}">
-<style>
-  :root { --bg:#0f172a; --card:#1e293b; --fg:#e2e8f0; --muted:#94a3b8; --accent:#22c55e; --danger:#ef4444; }
-  * { box-sizing: border-box; }
-  body { margin:0; font-family: system-ui, sans-serif; background:var(--bg); color:var(--fg); }
-  nav { display:flex; gap:1rem; align-items:center; padding:.8rem 1rem; background:var(--card); flex-wrap:wrap; }
-  header { background:var(--card); text-align:center; padding:1rem 1rem 0; }
-  header .brand img { height:clamp(140px, 28vw, 220px); width:auto; }
-  nav { justify-content:center; }
-  a { color:var(--accent); text-decoration:none; }
-  main { max-width:900px; margin:1rem auto; padding:0 1rem; }
-  .card { background:var(--card); border-radius:10px; padding:1rem; margin-bottom:1rem; overflow-x:auto; }
-  h1,h2 { margin-top:0; }
-  table { width:100%; border-collapse:collapse; }
-  th,td { text-align:left; padding:.4rem .5rem; border-bottom:1px solid #334155; }
-  th { color:var(--muted); font-weight:600; }
-  .num { text-align:right; }
-  .btn, button { background:var(--accent); color:#04210f; border:0; border-radius:6px; padding:.45rem .9rem; font-weight:600; cursor:pointer; font-size:1rem; }
-  button.danger { background:var(--danger); color:#fff; }
-  input, select { padding:.45rem; border-radius:6px; border:1px solid #475569; background:#0f172a; color:var(--fg); font-size:1rem; }
-  ul.errorlist { color:var(--danger); padding-left:1rem; }
-  .msg { padding:.6rem 1rem; border-radius:6px; margin-bottom:1rem; background:#14532d; }
-  .msg.error { background:#7f1d1d; }
-  .badge { background:#334155; border-radius:4px; padding:.1rem .4rem; font-size:.8rem; }
-  .win { color:var(--accent); font-weight:700; }
-  .donkey { position:relative; cursor:help; }
-  .donkey::after { content:attr(data-msg); position:absolute; left:130%; top:50%; transform:translateY(-50%) scale(.9); white-space:nowrap;
-    background:var(--accent); color:#04210f; font-weight:700; font-size:.9rem; padding:.3rem .7rem; border-radius:999px;
-    opacity:0; pointer-events:none; transition:opacity .15s, transform .15s; z-index:5; }
-  .donkey:hover::after, .donkey:focus::after { opacity:1; transform:translateY(-50%) scale(1); }
-  dialog { background:var(--card); color:var(--fg); border:1px solid #475569; border-radius:12px; padding:1.2rem 1.4rem; max-width:420px; width:calc(100% - 2rem); }
-  dialog::backdrop { background:rgba(2,6,23,.7); }
-  dialog p { margin-top:0; }
-  dialog .actions { display:flex; gap:.6rem; justify-content:flex-end; }
-  button.secondary { background:#334155; color:var(--fg); }
-  form.inline { display:inline; }
-  .teams { display:grid; grid-template-columns:1fr 1fr; gap:1rem; }
-  .teams ul { list-style:none; padding:0; }
-</style>
+<meta name="theme-color" content="#0b1020">
+<link rel="stylesheet" href="{% static 'league/style.css' %}">
 </head>
 <body>
 <header><a href="{% url 'home' %}" class="brand"><img src="{% static 'league/logo.png' %}" alt="FC 2026 Lega LAN Italia"></a></header>
-<nav>
-  <a href="{% url 'home' %}">Classifica</a>
-  <a href="{% url 'points' %}">Punti</a>
-  <a href="{% url 'trend' %}">Andamento</a>
-  <a href="{% url 'pairs' %}">Coppie</a>
-  <a href="{% url 'matches' %}">Partite</a>
-  <a href="{% url 'match_new' %}">+ Nuova partita</a>
-  <a href="{% url 'players' %}">Giocatori</a>
-</nav>
+<nav>{% with u=request.resolver_match.url_name %}
+  <a href="{% url 'home' %}"{% if u == 'home' %} class="active"{% endif %}>🏆 Classifica</a>
+  <a href="{% url 'points' %}"{% if u == 'points' %} class="active"{% endif %}>Punti</a>
+  <a href="{% url 'trend' %}"{% if u == 'trend' %} class="active"{% endif %}>Andamento</a>
+  <a href="{% url 'pairs' %}"{% if u == 'pairs' %} class="active"{% endif %}>Coppie</a>
+  <a href="{% url 'rivalry' %}"{% if u == 'rivalry' %} class="active"{% endif %}>🆚 Rivalità</a>
+  <a href="{% url 'matches' %}"{% if u == 'matches' %} class="active"{% endif %}>Partite</a>
+  <a href="{% url 'players' %}"{% if u == 'players' %} class="active"{% endif %}>Giocatori</a>
+  <a href="{% url 'match_new' %}" class="cta">+ Nuova partita</a>
+{% endwith %}</nav>
 <main>
   {% for m in messages %}<div class="msg {{ m.tags }}">{{ m }}</div>{% endfor %}
   {% block content %}{% endblock %}
