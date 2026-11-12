@@ -3,15 +3,20 @@
 {% block content %}
 <div class="card">
   <h2>Andamento nel tempo</h2>
-  <p style="color:var(--muted)">Per ogni giocatore, partita dopo partita (1v1 e 2v2). Una curva che sale = sta migliorando.
+  <p style="color:var(--muted)">Un riquadro per giocatore, tutti con la stessa scala, partita dopo partita da sinistra a destra:
+    più la linea si allunga, più partite ha giocato. Linea che sale = sta migliorando.
     100% = ha vinto tutte le partite.</p>
   <p>
     <label><input type="radio" name="metric" value="form_pct" checked> Forma (ultime 5 partite)</label>
     &nbsp;
     <label><input type="radio" name="metric" value="cum_pct"> Media complessiva</label>
   </p>
-  <p id="legend"></p>
-  <svg id="chart" viewBox="0 0 800 380" style="width:100%;height:auto"></svg>
+  <p style="color:var(--muted);font-size:.85rem">
+    <span style="color:#22c55e">●</span> vittoria &nbsp;
+    <span style="color:#94a3b8">●</span> pareggio &nbsp;
+    <span style="color:#ef4444">●</span> sconfitta
+  </p>
+  <div id="grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:.9rem"></div>
   <p id="empty" style="display:none">Ancora nessuna partita giocata.</p>
 </div>
 {{ series|json_script:"series-data" }}
@@ -19,12 +24,12 @@
 (function () {
   var series = JSON.parse(document.getElementById('series-data').textContent)
     .filter(function (s) { return s.results.length; });
-  var colors = ['#22c55e', '#3b82f6', '#f59e0b', '#ef4444', '#a855f7', '#14b8a6', '#ec4899', '#eab308'];
-  var svg = document.getElementById('chart'), legend = document.getElementById('legend');
-  var hidden = {}, NS = 'http://www.w3.org/2000/svg';
-  var W = 800, H = 380, L = 45, R = 15, T = 15, B = 40;
-  if (!series.length) { svg.style.display = 'none'; document.getElementById('empty').style.display = ''; return; }
-  var maxN = Math.max.apply(null, series.map(function (s) { return s.results.length; }));
+  var grid = document.getElementById('grid'), NS = 'http://www.w3.org/2000/svg';
+  if (!series.length) { document.getElementById('empty').style.display = ''; return; }
+  series.sort(function (a, b) { return b.results.length - a.results.length; });
+  var maxN = series[0].results.length;
+  var W = 300, H = 130, L = 30, R = 10, T = 8, B = 20;
+  var C = {w: '#22c55e', d: '#94a3b8', l: '#ef4444', line: '#38bdf8'};
 
   function el(name, attrs, text) {
     var e = document.createElementNS(NS, name);
@@ -34,39 +39,52 @@
   }
   function x(i) { return L + (maxN === 1 ? (W - L - R) / 2 : (i - 1) * (W - L - R) / (maxN - 1)); }
   function y(v) { return T + (100 - v) * (H - T - B) / 100; }
+  function kind(r) { return r.pts === 3 ? 'w' : (r.pts === 1 ? 'd' : 'l'); }
 
-  series.forEach(function (s, i) {
-    s.color = colors[i % colors.length];
-    var lab = document.createElement('label');
-    lab.style.marginRight = '1rem';
-    var cb = document.createElement('input');
-    cb.type = 'checkbox'; cb.checked = true;
-    cb.onchange = function () { hidden[s.name] = !cb.checked; draw(); };
-    var sw = document.createElement('span');
-    sw.textContent = ' ● '; sw.style.color = s.color;
-    lab.appendChild(cb); lab.appendChild(sw); lab.appendChild(document.createTextNode(s.badge + ' ' + s.name));
-    legend.appendChild(lab);
+  var cards = series.map(function (s) {
+    var card = document.createElement('div');
+    card.style.cssText = 'background:var(--card-2);border:1px solid var(--line);border-radius:12px;padding:.6rem .7rem';
+    var head = document.createElement('div');
+    head.style.cssText = 'display:flex;justify-content:space-between;align-items:baseline;white-space:nowrap';
+    var name = document.createElement('strong');
+    name.textContent = s.badge + ' ' + s.name;
+    var now = document.createElement('strong');
+    var info = document.createElement('div');
+    info.style.cssText = 'color:var(--muted);font-size:.8rem;margin-bottom:.2rem';
+    head.appendChild(name); head.appendChild(now);
+    var svg = el('svg', {viewBox: '0 0 ' + W + ' ' + H});
+    svg.style.cssText = 'width:100%;height:auto;display:block';
+    card.appendChild(head); card.appendChild(info); card.appendChild(svg);
+    grid.appendChild(card);
+    return {s: s, svg: svg, info: info, now: now};
   });
 
   function draw() {
     var metric = document.querySelector('input[name=metric]:checked').value;
-    while (svg.firstChild) svg.removeChild(svg.firstChild);
-    [0, 25, 50, 75, 100].forEach(function (v) {
-      svg.appendChild(el('line', {x1: L, x2: W - R, y1: y(v), y2: y(v), stroke: '#334155'}));
-      svg.appendChild(el('text', {x: L - 6, y: y(v) + 4, 'text-anchor': 'end', fill: '#94a3b8', 'font-size': 12}, v + '%'));
-    });
-    var step = Math.max(1, Math.ceil(maxN / 12));
-    for (var i = 1; i <= maxN; i += step)
-      svg.appendChild(el('text', {x: x(i), y: H - B + 18, 'text-anchor': 'middle', fill: '#94a3b8', 'font-size': 12}, i));
-    svg.appendChild(el('text', {x: (L + W - R) / 2, y: H - 6, 'text-anchor': 'middle', fill: '#94a3b8', 'font-size': 12}, 'Partita n°'));
-    series.forEach(function (s) {
-      if (hidden[s.name]) return;
-      var pts = s.results.map(function (r, i) { return x(i + 1) + ',' + y(r[metric]); }).join(' ');
-      svg.appendChild(el('polyline', {points: pts, fill: 'none', stroke: s.color, 'stroke-width': 2.5, 'stroke-linejoin': 'round'}));
+    var step = Math.max(1, Math.ceil(maxN / 6));
+    cards.forEach(function (c) {
+      var s = c.s, svg = c.svg, n = s.results.length;
+      var w = 0, d = 0, l = 0;
+      s.results.forEach(function (r) { var q = kind(r); if (q === 'w') w++; else if (q === 'd') d++; else l++; });
+      c.now.textContent = Math.round(s.results[n - 1][metric]) + '%';
+      c.info.textContent = n + ' partite · ' + w + 'V ' + d + 'P ' + l + 'S';
+      while (svg.firstChild) svg.removeChild(svg.firstChild);
+      [0, 50, 100].forEach(function (v) {
+        svg.appendChild(el('line', {x1: L, x2: W - R, y1: y(v), y2: y(v), stroke: '#2a3760',
+                                    'stroke-dasharray': v === 50 ? '3 3' : ''}));
+        svg.appendChild(el('text', {x: L - 5, y: y(v) + 4, 'text-anchor': 'end', fill: '#8f9bbd', 'font-size': 10}, v + '%'));
+      });
+      for (var k = 1; k <= maxN; k += step)
+        svg.appendChild(el('text', {x: x(k), y: H - 5, 'text-anchor': 'middle', fill: '#8f9bbd', 'font-size': 10}, k));
+      var pts = s.results.map(function (r, i) { return x(i + 1) + ',' + y(r[metric]); });
+      svg.appendChild(el('polygon', {points: x(1) + ',' + y(0) + ' ' + pts.join(' ') + ' ' + x(n) + ',' + y(0),
+                                     fill: C.line, 'fill-opacity': 0.12}));
+      svg.appendChild(el('polyline', {points: pts.join(' '), fill: 'none', stroke: C.line, 'stroke-width': 2,
+                                      'stroke-linejoin': 'round'}));
       s.results.forEach(function (r, i) {
-        var c = el('circle', {cx: x(i + 1), cy: y(r[metric]), r: 4, fill: s.color});
-        c.appendChild(el('title', {}, s.name + ' · partita ' + (i + 1) + ' (' + r.date + ', ' + r.mode + ' ' + r.score + '): ' + r[metric] + '%'));
-        svg.appendChild(c);
+        var dot = el('circle', {cx: x(i + 1), cy: y(r[metric]), r: 2.8, fill: C[kind(r)]});
+        dot.appendChild(el('title', {}, s.name + ' · partita ' + (i + 1) + ' (' + r.date + ', ' + r.mode + ' ' + r.score + '): ' + r[metric] + '%'));
+        svg.appendChild(dot);
       });
     });
   }

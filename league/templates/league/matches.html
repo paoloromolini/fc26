@@ -1,7 +1,11 @@
 {% extends 'league/base.html' %}
 {% block content %}
 <div class="card">
-  <h1>Tutte le partite</h1>
-  <table>{% for m in matches %}{% include 'league/_match_row.html' %}{% empty %}<tr><td>Nessuna partita.</td></tr>{% endfor %}</table>
+  <h2>Prossime partite</h2>
+  <table>{% for m in upcoming %}{% include 'league/_match_row.html' %}{% empty %}<tr><td>Nessuna partita in programma.</td></tr>{% endfor %}</table>
+</div>
+<div class="card">
+  <h1>Risultati</h1>
+  <table>{% for m in matches %}{% include 'league/_match_row.html' %}{% empty %}<tr><td>Ancora nessun risultato.</td></tr>{% endfor %}</table>
 </div>
 {% endblock %}

@@ -47,5 +47,35 @@
   dlg.addEventListener('cancel', function () { pending = null; });
 })();
 </script>
+<script>
+document.querySelectorAll('table.sortable').forEach(function (table) {
+  var heads = Array.prototype.slice.call(table.querySelectorAll('th'));
+  var tbody = heads[0].closest('tbody') || table;
+  function key(td, numeric) {
+    var t = td.dataset.sort !== undefined ? td.dataset.sort : td.textContent;
+    if (numeric) { var m = t.replace('\u2212', '-').replace(',', '.').match(/-?\d+(?:\.\d+)?/); return m ? parseFloat(m[0]) : null; }
+    return t.replace(/^[^\p{L}\p{N}]+/u, '').trim().toLowerCase();
+  }
+  function sort(th, i) {
+    var rows = Array.prototype.filter.call(table.rows, function (r) { return r.cells.length === heads.length && !r.querySelector('th'); });
+    var numeric = rows.every(function (r) { return key(r.cells[i], true) !== null || /^\s*[–-]\s*$/.test(r.cells[i].textContent); });
+    var dir = th.getAttribute('aria-sort') === (numeric ? 'descending' : 'ascending') ? -1 : 1;
+    if (numeric) dir = -dir;
+    heads.forEach(function (h) { h.removeAttribute('aria-sort'); });
+    th.setAttribute('aria-sort', dir === 1 ? 'ascending' : 'descending');
+    rows.map(function (r, n) { return {r: r, k: key(r.cells[i], numeric), n: n}; }).sort(function (a, b) {
+      if (a.k === null || b.k === null) return a.k === b.k ? a.n - b.n : (a.k === null ? 1 : -1);
+      var c = numeric ? a.k - b.k : a.k.localeCompare(b.k, 'it');
+      return c ? c * dir : a.n - b.n;
+    }).forEach(function (x) { tbody.appendChild(x.r); });
+  }
+  heads.forEach(function (th, i) {
+    if (!th.textContent.trim()) return;
+    th.tabIndex = 0;
+    th.onclick = function () { sort(th, i); };
+    th.onkeydown = function (e) { if (e.key === 'Enter') sort(th, i); };
+  });
+});
+</script>
 </body>
 </html>
