@@ -53,6 +53,9 @@ tr:last-child td { border-bottom: 0; }
 td.rank { width: 2.4rem; font-weight: 700; color: var(--muted); }
 td.rank .medal { display: inline-block; font-size: 1.9rem; line-height: 1; }
 td.rank { width: 3rem; }
+table.sortable th:not(:empty) { cursor: pointer; user-select: none; }
+table.sortable th[aria-sort="ascending"]::after { content: " ▲"; }
+table.sortable th[aria-sort="descending"]::after { content: " ▼"; }
 
 /* emoji grandi: livelli, ciuchino, premi */
 .ico { font-size: 1.6em; line-height: 1; vertical-align: -.18em; margin-right: .1em; }

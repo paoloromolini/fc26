@@ -62,7 +62,7 @@
 
 <div class="card">
   <h2>Tutte le sfide</h2>
-  <table>
+  <table class="sortable">
     <tr><th>Sfida</th><th class="num">Scontri</th><th class="num">Bilancio</th><th class="num">Gol</th></tr>
     {% for r in rivalries %}
     <tr><td><a href="?a={{ r.a.id }}&b={{ r.b.id }}">{{ r.a.name }} – {{ r.b.name }}</a></td><td class="num">{{ r.rec.n }}</td>
