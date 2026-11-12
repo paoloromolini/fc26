@@ -213,11 +213,8 @@ def points(request):
 
 
 def home(request):
-    upcoming = Match.objects.filter(played=False).order_by('scheduled_at').prefetch_related('team1', 'team2')
-    recent = Match.objects.filter(played=True).prefetch_related('team1', 'team2')[:10]
     return render(request, 'league/home.html', {
-        'ratings': elo_ratings(), 'awards': awards(), 'elo_start': ELO_START, 'elo_k': ELO_K, 'min_games': MIN_GAMES,
-        'upcoming': with_elo(upcoming), 'recent': with_elo(recent)})
+        'ratings': elo_ratings(), 'awards': awards(), 'elo_start': ELO_START, 'elo_k': ELO_K, 'min_games': MIN_GAMES})
 
 
 def rivalry(request):
@@ -235,7 +232,9 @@ def rivalry(request):
 
 def matches(request):
     qs = Match.objects.prefetch_related('team1', 'team2')
-    return render(request, 'league/matches.html', {'matches': with_elo(qs)})
+    upcoming = qs.filter(played=False).order_by('scheduled_at')
+    return render(request, 'league/matches.html', {
+        'upcoming': with_elo(upcoming), 'matches': with_elo(qs.filter(played=True))})
 
 
 def match_new(request):
@@ -243,7 +242,7 @@ def match_new(request):
     if request.method == 'POST' and form.is_valid():
         form.save()
         messages.success(request, 'Partita creata.')
-        return redirect('home')
+        return redirect('matches')
     return render(request, 'league/match_form.html', {'form': form, 'players': Player.objects.exists()})
 
 
@@ -255,7 +254,7 @@ def match_result(request, pk):
         m.played = True
         m.save()
         messages.success(request, 'Risultato salvato.')
-        return redirect('home')
+        return redirect('matches')
     return render(request, 'league/result_form.html', {'form': form, 'match': match})
 
 

@@ -38,12 +38,4 @@
   {% include 'league/_tiers.html' %}
 </div>
 
-<div class="card">
-  <h2>Prossime partite</h2>
-  <table>{% for m in upcoming %}{% include 'league/_match_row.html' %}{% empty %}<tr><td>Nessuna partita in programma.</td></tr>{% endfor %}</table>
-</div>
-<div class="card">
-  <h2>Ultimi risultati</h2>
-  <table>{% for m in recent %}{% include 'league/_match_row.html' %}{% empty %}<tr><td>Ancora nessun risultato.</td></tr>{% endfor %}</table>
-</div>
 {% endblock %}
