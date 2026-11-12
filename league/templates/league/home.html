@@ -19,6 +19,23 @@
 </div>
 {% endif %}
 
+{% if player_table %}
+<div class="card">
+  <h2>Premi del momento: tutti i giocatori</h2>
+  <p class="muted">Gol a partita, serie in corso e record di serie di ognuno. 💣 e 🧱 marcano chi detiene Cannoniere e Muro (servono almeno {{ min_games }} partite).</p>
+  <table>
+    <tr><th>Giocatore</th><th class="num" title="Partite giocate">G</th><th class="num">Gol fatti / partita</th><th class="num">Gol subiti / partita</th><th class="num">Serie in corso</th><th class="num" title="Più vittorie consecutive di sempre">Record 🚀</th><th class="num" title="Più sconfitte consecutive di sempre">Record 🪦</th></tr>
+    {% for r in player_table %}
+    <tr><td>{% player_name r.player %}</td><td class="num">{{ r.games }}</td>
+      <td class="num">{% if r.best_gf %}💣 {% endif %}{{ r.gf_pm|floatformat:2 }}</td>
+      <td class="num">{% if r.best_ga %}🧱 {% endif %}{{ r.ga_pm|floatformat:2 }}</td>
+      <td class="num">{% if r.streak_kind == 'w' %}<span class="win">🚀 {{ r.streak }} V</span>{% elif r.streak_kind == 'l' %}<span class="loss">🪦 {{ r.streak }} S</span>{% else %}<span class="muted">–</span>{% endif %}</td>
+      <td class="num">{{ r.best_win }}</td><td class="num">{{ r.best_loss }}</td></tr>
+    {% endfor %}
+  </table>
+</div>
+{% endif %}
+
 <div class="card">
   <h2>Classifica Elo</h2>
   <p class="muted">Come negli scacchi: tutti partono da {{ elo_start }}; battere un avversario forte fa guadagnare più punti che battere uno debole (K = {{ elo_k }}, pareggio = ½ vittoria). Nel 2v2 conta la media dei rating della coppia e ogni giocatore riceve lo stesso scambio di punti.<br>

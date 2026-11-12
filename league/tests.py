@@ -264,3 +264,18 @@ class AwardTests(TestCase):
         a, b = Player.objects.create(name='A'), Player.objects.create(name='B')
         _play('1v1', [a], [b], 1, 0)
         self.assertNotIn('Il Muro', self.titles())
+
+
+class PlayerTableTests(TestCase):
+    def test_rows_and_streaks(self):
+        from .awards import player_table
+        a, b, c = (Player.objects.create(name=n) for n in 'ABC')
+        for sa, sb in ((3, 0), (1, 2), (2, 0), (4, 1), (1, 0)):
+            _play('1v1', [a], [b], sa, sb)
+        rows = {r['player'].name: r for r in player_table()}
+        self.assertNotIn('C', rows)
+        self.assertEqual((rows['A']['games'], rows['A']['gf_pm'], rows['A']['ga_pm']), (5, 2.2, 0.6))
+        self.assertEqual((rows['A']['streak_kind'], rows['A']['streak'], rows['A']['best_win']), ('w', 3, 3))
+        self.assertEqual((rows['B']['streak_kind'], rows['B']['streak'], rows['B']['best_loss']), ('l', 3, 3))
+        self.assertTrue(rows['A']['best_gf'] and rows['A']['best_ga'])
+        self.assertIn('Gol fatti / partita', self.client.get('/').content.decode())

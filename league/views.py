@@ -2,7 +2,7 @@ from django.contrib import messages
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
-from .awards import awards
+from .awards import awards, player_table
 from .badges import MIN_GAMES, badges
 from .forms import MatchForm, PlayerForm, ResultForm
 from .models import Match, Player
@@ -214,7 +214,7 @@ def points(request):
 
 def home(request):
     return render(request, 'league/home.html', {
-        'ratings': elo_ratings(), 'awards': awards(), 'elo_start': ELO_START, 'elo_k': ELO_K, 'min_games': MIN_GAMES})
+        'ratings': elo_ratings(), 'awards': awards(), 'player_table': player_table(), 'elo_start': ELO_START, 'elo_k': ELO_K, 'min_games': MIN_GAMES})
 
 
 def rivalry(request):
